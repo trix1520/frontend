@@ -4,7 +4,7 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-const API_BASE = "https://frontend-theta-ecru-85.vercel.app/api";  // ← сюда реальный адрес
+const API_BASE = "https://telegram-api-ashen.vercel.app/api";  // ← сюда реальный адрес
 
 let currentPhone = "";
 
